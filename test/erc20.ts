@@ -17,7 +17,7 @@ describe("erc20", function () {
     token = await deployer.deploy("token", "TKN");
     await token.mint(signers[0].address, ethers.utils.parseEther("100"));
   });
-  
+
 
   describe("transfer functionality", async () => {
 
@@ -38,6 +38,44 @@ describe("erc20", function () {
       );
       await expect(tx).to.be.revertedWith("ERC20: insufficient-balance");
     });
-    
+
   });
+
+  describe("transferFrom functionality", async () => {
+
+    it("approves successfully", async () => {
+      const amount = ethers.utils.parseEther("5")
+      const approveTx = await token.approve(signers[1].address, amount);
+      const allowance = await token.allowance(
+        signers[0].address,
+        signers[1].address,
+      );
+      expect(allowance.toString()).to.equal(amount);
+    });
+
+    it("transfers successfully", async () => {
+
+      const amount = ethers.utils.parseEther("5")
+      const priorBalance0 = await token.balanceOf(signers[0].address);
+      const priorBalance1 = await token.balanceOf(signers[1].address);
+      await token.approve(signers[1].address, amount);
+      await token.connect(signers[1]).transferFrom(signers[0].address, signers[1].address, amount);
+      expect(await token.balanceOf(signers[0].address)).to.be.eq(
+        priorBalance0.sub(amount)
+      );
+      expect(await token.balanceOf(signers[1].address)).to.be.eq(
+        priorBalance1.add(amount)
+      );
+
+    });
+
+    it("does not transfer more than balance", async () => {
+      const amount = ethers.utils.parseEther("5")
+      await token.approve(signers[1].address, amount);
+      const tx = token.connect(signers[1]).transferFrom(signers[0].address, signers[1].address, amount.mul(2));
+      await expect(tx).to.be.revertedWith("ERC20: insufficient-allowance")
+
+    });
+  });
+
 });

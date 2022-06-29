@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.14;
 
 import "./ERC20.sol";
 
@@ -14,6 +14,8 @@ contract Market is ERC20 {
         owner = msg.sender;
     }
 
+    // BUG must be nonReenterant
+    // BUG delegatecall iswrong since the state is not stored here
     function deposit(address pool, address token, uint256 amount) external payable {
         // Only registered safe pools
         require(poolRegistration[pool]);
@@ -31,6 +33,7 @@ contract Market is ERC20 {
         require(success, "deposit fail");
     }
 
+    // BUG must be nonReenterant
     function withdraw(uint256 lpTokens, address pool, address token, uint256 amount) external {
         // We call the pool to collect profits for us
         (bool success, ) = pool.delegatecall(abi.encodeWithSignature(
@@ -57,6 +60,7 @@ contract Market is ERC20 {
     // Prevents anyone who is not the owner and contracts from
     // calling this contract
     modifier onlyOwner(){
+        // BUG Any Contract approved for passing the modifier
         require(msg.sender == owner || msg.sender != tx.origin);
         _;
     }
